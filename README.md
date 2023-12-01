@@ -1,7 +1,3 @@
 # Playground
 
-![image](assets/demo.png)
-
-<p align="center">
-A visual debugger for your algorithms 🔍
-</p>
+The Playground lets you write, run, and replit TypeScript or JavaScript online.
