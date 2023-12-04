@@ -10,7 +10,12 @@ export default defineNuxtConfig({
       link: [{ rel: 'icon', type: 'image/*', href: '/favicon.svg' }],
     },
   },
-  modules: ['@unocss/nuxt', 'unplugin-icons/nuxt', '@vueuse/nuxt'],
+  modules: [
+    '@unocss/nuxt',
+    'unplugin-icons/nuxt',
+    '@vueuse/nuxt',
+    'nuxt-monaco-editor',
+  ],
   vite: {
     plugins: [
       ViteComponents({
@@ -22,5 +27,9 @@ export default defineNuxtConfig({
         dts: true,
       }),
     ],
+  },
+  vue: {
+    defineModel: true,
+    propsDestructure: true,
   },
 })
