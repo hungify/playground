@@ -2,13 +2,10 @@
   // https://nuxt.com/docs/guide/concepts/typescript
   "extends": "./.nuxt/tsconfig.json",
   "compilerOptions": {
-    /* Linting */
-    "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-
-    /* Other */
-    "verbatimModuleSyntax": true
+    "noUncheckedIndexedAccess": true,
+    "useUnknownInCatchVariables": true
   }
 }
