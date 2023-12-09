@@ -3,7 +3,6 @@ import {
   createSnapshot,
   createVariable,
   getCallFunctionArgs,
-  getFunctionDeclarationIdentifierName,
   getFunctionParams,
   getNames,
   getParams,
@@ -18,65 +17,96 @@ export function customPlugin(babel: Babel): PluginObj {
     name: 'custom-plugin',
     visitor: {
       Program(path) {
-        const declareFunctions = path.node.body.filter(
+        const callExpressionsList = path.node.body.filter(
           (statement) =>
-            t.isFunctionDeclaration(statement) ||
-            (t.isVariableDeclaration(statement) &&
-              t.isExportDefaultDeclaration(statement)),
+            t.isExpressionStatement(statement) &&
+            t.isCallExpression(statement.expression) &&
+            t.isIdentifier(statement.expression.callee),
         )
 
-        if (declareFunctions.length > 1) {
+        if (callExpressionsList.length === 0) {
           throw new Error(
-            `Only one function declaration or arrow function expression is allowed.
-            You have ${declareFunctions.length} declarations.`,
+            `Your program must call a function. Please call your function.`,
+          )
+        } else if (callExpressionsList.length > 1) {
+          throw new Error(
+            `Calling multiple functions is not allowed. You have ${callExpressionsList.length} calls.`,
           )
         }
 
-        const declareFunction = path.node.body.find(
+        if (
+          !t.isExpressionStatement(callExpressionsList[0]) ||
+          !t.isCallExpression(callExpressionsList[0].expression) ||
+          !t.isIdentifier(callExpressionsList[0].expression.callee)
+        ) {
+          throw new Error('Expression statement expected')
+        }
+
+        const args:
+          | (string | number | boolean)[]
+          | (string | number | boolean)[][] = []
+
+        callExpressionsList[0].expression.arguments.forEach((arg) => {
+          const argValue = getCallFunctionArgs(arg)
+          if (Array.isArray(argValue)) {
+            ;(args as (string | number | boolean)[][]).push(argValue)
+          } else {
+            ;(args as (string | number | boolean)[]).push(argValue)
+          }
+        })
+
+        const entryPoint = callExpressionsList[0].expression.callee.name
+        const params: string[] = []
+        let type: 'Identifier' | 'FunctionDeclaration' | null = null
+
+        let functionDeclaration = path.node.body.find(
           (statement) =>
             t.isFunctionDeclaration(statement) ||
-            t.isVariableDeclaration(statement) ||
-            (t.isExportDefaultDeclaration(statement) &&
-              t.isFunctionDeclaration(statement.declaration)),
+            t.isExportDefaultDeclaration(statement),
         )
 
-        let entryPoint: string | undefined
-        let type:
-          | 'Identifier'
-          | 'FunctionDeclaration'
-          | 'ArrowFunctionExpression'
-          | null = null
+        let functionExpression = path.node.body.find((statement) =>
+          t.isVariableDeclaration(statement),
+        )
 
-        const params: string[] = []
+        const exportNamedDeclaration = path.node.body.find((statement) =>
+          t.isExportNamedDeclaration(statement),
+        )
 
         if (
-          t.isFunctionDeclaration(declareFunction) ||
-          t.isExportDefaultDeclaration(declareFunction)
+          exportNamedDeclaration &&
+          t.isExportNamedDeclaration(exportNamedDeclaration) &&
+          t.isVariableDeclaration(exportNamedDeclaration.declaration)
         ) {
-          // function foo() {}
-          const functionDeclarationIdentifierName =
-            getFunctionDeclarationIdentifierName(declareFunction)
+          functionExpression = exportNamedDeclaration.declaration
+        } else if (
+          exportNamedDeclaration &&
+          t.isExportNamedDeclaration(exportNamedDeclaration) &&
+          t.isFunctionDeclaration(exportNamedDeclaration.declaration)
+        ) {
+          functionDeclaration = exportNamedDeclaration.declaration
+        }
 
-          const exportDefaultDeclaration = path.node.body.find((statement) =>
-            t.isExportDefaultDeclaration(statement),
-          )
+        if (
+          functionDeclaration &&
+          (t.isFunctionDeclaration(functionDeclaration) ||
+            t.isExportDefaultDeclaration(functionDeclaration))
+        ) {
+          type = 'FunctionDeclaration'
+          const paramKeys = getFunctionParams(functionDeclaration)
+          params.push(...paramKeys)
+        } else if (functionExpression) {
+          let firstDeclaration = null
 
-          if (!t.isExportDefaultDeclaration(exportDefaultDeclaration)) {
-            throw new Error(
-              `Your function ${functionDeclarationIdentifierName} must be exported as a default export.`,
-            )
+          if (t.isVariableDeclaration(functionExpression)) {
+            firstDeclaration = functionExpression.declarations[0]
+          } else if (
+            t.isExportNamedDeclaration(functionExpression) &&
+            t.isVariableDeclaration(functionExpression.declaration)
+          ) {
+            firstDeclaration = functionExpression.declaration.declarations[0]
           }
 
-          entryPoint = functionDeclarationIdentifierName
-          type = t.isFunctionDeclaration(declareFunction)
-            ? 'FunctionDeclaration'
-            : 'Identifier'
-
-          const paramKeys = getFunctionParams(declareFunction)
-          params.push(...paramKeys)
-        } else if (t.isVariableDeclaration(declareFunction)) {
-          // const foo = () => {} or const foo = function() {}
-          const firstDeclaration = declareFunction.declarations[0]
           if (
             !firstDeclaration ||
             !t.isIdentifier(firstDeclaration.id) ||
@@ -88,65 +118,11 @@ export function customPlugin(babel: Babel): PluginObj {
             )
           }
 
-          entryPoint = firstDeclaration.id.name
-
-          const exportDefaultDeclaration = path.node.body.find((statement) =>
-            t.isExportDefaultDeclaration(statement),
-          )
-
-          if (!t.isExportDefaultDeclaration(exportDefaultDeclaration)) {
-            throw new Error(
-              `Your function ${entryPoint} was declared, but not exported. Please export your function ${entryPoint} as a default export.`,
-            )
-          }
-          type = t.isFunctionExpression(firstDeclaration.init)
-            ? 'FunctionDeclaration'
-            : 'ArrowFunctionExpression'
+          type = 'FunctionDeclaration'
           const paramKeys = getFunctionParams(firstDeclaration.init)
 
           params.push(...paramKeys)
-        } else {
-          throw new Error(
-            `Your entry point must be a function declaration or arrow function expression.`,
-          )
         }
-
-        const expressionStatement = path.node.body.find((statement) =>
-          t.isExpressionStatement(statement),
-        )
-
-        if (
-          !t.isExpressionStatement(expressionStatement) ||
-          !t.isCallExpression(expressionStatement.expression) ||
-          !t.isIdentifier(expressionStatement.expression.callee)
-        ) {
-          throw new Error(
-            `Your function ${entryPoint} was declared, but not called.`,
-          )
-        }
-
-        if (entryPoint !== expressionStatement.expression.callee.name) {
-          throw new Error(
-            `Please call your function ${entryPoint} instead of ${expressionStatement.expression.callee.name}.`,
-          )
-        }
-
-        if (!entryPoint) {
-          entryPoint = path.scope.generateUidIdentifier('entryPoint').name
-        }
-
-        const args:
-          | (string | number | boolean)[]
-          | (string | number | boolean)[][] = []
-
-        expressionStatement.expression.arguments.forEach((arg) => {
-          const argValue = getCallFunctionArgs(arg)
-          if (Array.isArray(argValue)) {
-            ;(args as (string | number | boolean)[][]).push(argValue)
-          } else {
-            ;(args as (string | number | boolean)[]).push(argValue)
-          }
-        })
 
         path.traverse(
           {

@@ -51,19 +51,12 @@ const {
   execute,
   params,
   debugger: { activeIndex, onStep, onStepBack, currentStep },
-} = useCode(codeDebounced, {
-  onExecuteStart() {
-    loading.value = true
-  },
-  onExecuteEnd() {
-    loading.value = false
-  },
-})
+} = useCode(codeDebounced)
 </script>
 
 <template>
   <main class="h-screen w-screen flex overflow-hidden text-sm">
-    <Overlay v-show="loading && !isExecuting"> Loading... </Overlay>
+    <Overlay v-show="loading"> Loading... </Overlay>
     <section class="flex flex-1 items-center bg-gray-800 py-8">
       <MonacoEditor
         v-model="code"

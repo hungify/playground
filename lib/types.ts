@@ -30,7 +30,7 @@ export type EntryArguments<T> = T extends (
   : unknown[]
 
 export const SNAPSHOTS = '__snapshots'
-export const ARGUMENTS = '__arguments'
+export const ARGUMENTS = '__args'
 export const PARAMS = '__params'
 export const ENTRY_POINT = '__entryPoint'
 export const META = '__meta'

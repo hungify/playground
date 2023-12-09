@@ -2,6 +2,7 @@ import {
   type ArgumentPlaceholder,
   type ArrowFunctionExpression,
   type ExportDefaultDeclaration,
+  type ExportNamedDeclaration,
   type Expression,
   type FunctionDeclaration,
   type FunctionExpression,
@@ -18,6 +19,7 @@ import {
   isAssignmentPattern,
   isBooleanLiteral,
   isExportDefaultDeclaration,
+  isExportNamedDeclaration,
   isFunctionDeclaration,
   isFunctionExpression,
   isIdentifier,
@@ -39,12 +41,12 @@ import {
 } from './types'
 
 export const getFunctionDeclarationIdentifierName = (
-  func: FunctionDeclaration | ExportDefaultDeclaration,
+  func: FunctionDeclaration | ExportDefaultDeclaration | ExportNamedDeclaration,
 ) => {
   if (isFunctionDeclaration(func)) {
     return func.id?.name
   } else if (
-    isExportDefaultDeclaration(func) &&
+    (isExportDefaultDeclaration(func) || isExportNamedDeclaration(func)) &&
     isFunctionDeclaration(func.declaration)
   ) {
     return func.declaration.id?.name
@@ -71,6 +73,7 @@ export const getFunctionParams = (
   declareFunction:
     | FunctionDeclaration
     | ExportDefaultDeclaration
+    | ExportNamedDeclaration
     | FunctionExpression
     | ArrowFunctionExpression,
 ) => {
@@ -81,7 +84,8 @@ export const getFunctionParams = (
   ) {
     return declareFunction.params.flatMap((node) => getNames(node))
   } else if (
-    isExportDefaultDeclaration(declareFunction) &&
+    (isExportDefaultDeclaration(declareFunction) ||
+      isExportNamedDeclaration(declareFunction)) &&
     isFunctionDeclaration(declareFunction.declaration)
   ) {
     return declareFunction.declaration.params.flatMap((node) => getNames(node))
@@ -183,18 +187,18 @@ export const buildMetadata = (
     args: (string | number | boolean)[] | (string | number | boolean)[][]
   },
 ) => {
-  const params = t.identifier('__params')
+  const params = t.identifier(PARAMS)
   const paramsArray = data.params.map((name) =>
     t.stringLiteral(name),
   ) as Expression[]
   program.body.push(createVariable(t, params, t.arrayExpression(paramsArray)))
 
-  const entryPoint = t.identifier('__entryPoint')
+  const entryPoint = t.identifier(ENTRY_POINT)
   program.body.push(
     createVariable(t, entryPoint, t.identifier(data.entryPoint)),
   )
 
-  const args = t.identifier('__arguments')
+  const args = t.identifier(ARGUMENTS)
   program.body.push(
     createVariable(
       t,

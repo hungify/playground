@@ -11,6 +11,7 @@ import {
 export const transpileSource = (source: string) => {
   const result = transform(source, {
     plugins: [customPlugin],
+    filename: 'index.mjs',
   })
   if (!result || !result.code)
     throw new Error(`Something went wrong transpiling ${source}.`)
@@ -19,7 +20,7 @@ export const transpileSource = (source: string) => {
     entryPoint: EntryFunction
     snapshots: Snapshotter
     params: string[]
-    arguments: EntryArguments<
+    args: EntryArguments<
       string | number | boolean | string[] | number[] | boolean[]
     >
   }

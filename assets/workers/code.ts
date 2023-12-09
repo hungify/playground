@@ -4,12 +4,7 @@ import type { CodeMessageEvent } from '~/types'
 
 self.addEventListener('message', (evt: CodeMessageEvent) => {
   const { code } = evt.data
-  const {
-    entryPoint,
-    snapshots,
-    params,
-    arguments: args,
-  } = transpileSource(code)
+  const { entryPoint, snapshots, params, args } = transpileSource(code)
 
   const returnValue = entryPoint(...args)
   const cleanSnap = cleanSnapshots(snapshots.data)
