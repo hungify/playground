@@ -78,6 +78,7 @@ export function customPlugin(babel: Babel): PluginObj {
           // const foo = () => {} or const foo = function() {}
           const firstDeclaration = declareFunction.declarations[0]
           if (
+            !firstDeclaration ||
             !t.isIdentifier(firstDeclaration.id) ||
             (!t.isFunctionExpression(firstDeclaration.init) &&
               !t.isArrowFunctionExpression(firstDeclaration.init))

@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 interface InputFormProps {
-  inputs: ((string | number)[] | (string | number[])[])[]
+  inputs: (string | number[] | undefined)[][]
 }
 
 defineProps<InputFormProps>()

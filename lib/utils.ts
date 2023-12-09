@@ -129,9 +129,10 @@ export const getCallFunctionArgs = (
 
 export const createObjectExpression = (entries: string[][]) => {
   return objectExpression(
-    entries.map(([key, val]) =>
-      objectProperty(identifier(key), identifier(val)),
-    ),
+    entries.map(([key, val]) => {
+      if (key && val) return objectProperty(identifier(key), identifier(val))
+      else throw new Error('Invalid entry')
+    }),
   )
 }
 
@@ -155,8 +156,8 @@ export const createSnapshot = (
       if (typeof stringOrVal === 'string') {
         return [stringOrVal, stringOrVal]
       } else {
-        const [key, val] = Object.entries(stringOrVal)[0]
-        return [key, val]
+        const value = Object.entries(stringOrVal)[0]
+        return value ? [value[0], value[1]] : []
       }
     })
   return t.expressionStatement(

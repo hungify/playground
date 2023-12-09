@@ -28,7 +28,7 @@ interface Options {
 
 export function useCode(code: Ref<string>, opts: Options = defaultOptions) {
   const snapshots = ref<SnapshotState[]>([])
-  const inputs = ref<((string | number)[] | (string | number[])[])[]>([])
+  const inputs = ref<(string | number[] | undefined)[][]>([])
   const isExecuting = ref(false)
   const isExecuted = ref(false)
   const error = ref<ErrorEvent | null>(null)
